@@ -169,6 +169,14 @@
   .btn-accent:hover { transform: translateY(-1px); box-shadow: 0 5px 20px rgba(255,71,87,0.5); }
   .btn-accent:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
 
+  .btn-agua {
+    background: linear-gradient(135deg, #48DBFB, #54A0FF);
+    color: #06344a;
+    box-shadow: 0 3px 14px rgba(72,219,251,0.45);
+  }
+  .btn-agua:hover { transform: translateY(-1px); box-shadow: 0 5px 20px rgba(72,219,251,0.6); }
+  .btn-agua:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
+
   .btn-outline {
     background: transparent;
     border: 1px solid rgba(45,52,54,0.25);
@@ -223,6 +231,24 @@
   @keyframes fadeIn {
     from { opacity: 0; transform: translateX(-6px); }
     to { opacity: 1; transform: translateX(0); }
+  }
+
+  .player-item.is-out {
+    opacity: 0.55;
+    border-left-color: #48DBFB;
+    background: linear-gradient(90deg, rgba(72,219,251,0.14), rgba(72,219,251,0.04));
+  }
+  .player-item.is-out .p-num {
+    background: linear-gradient(135deg, #48DBFB, #54A0FF);
+  }
+  .player-item.is-out .p-name {
+    text-decoration: line-through;
+    text-decoration-color: #48DBFB;
+  }
+  .player-item.is-out .p-name::after {
+    content: ' 💧';
+    text-decoration: none;
+    display: inline-block;
   }
 
   .player-item .p-num {
@@ -516,6 +542,24 @@
     margin-bottom: 6px;
   }
 
+  /* Variante "al agua": tema azul con salpicadura */
+  .winner-card.agua {
+    background: linear-gradient(145deg, #1a2f3f, #0f2230);
+    border-color: #48DBFB;
+    box-shadow: 0 50px 100px rgba(0,0,0,0.5), 0 0 90px rgba(72,219,251,0.18);
+  }
+  .winner-card.agua .who {
+    background: linear-gradient(90deg, #48DBFB, #54A0FF, #A29BFE);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .winner-card.agua .trophy { animation: splash 0.9s ease-in-out infinite; }
+  @keyframes splash {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(6px) scale(1.15); }
+  }
+
   .winner-card .for-prize {
     color: var(--text-dim);
     font-size: 1rem;
@@ -626,8 +670,9 @@
 
     <div class="btn-row" style="margin-top:4px;">
       <button class="btn btn-accent" id="btnSpin">🎡 GIRAR RULETA</button>
-      <button class="btn btn-outline" id="btnResetWheel">Reiniciar giro</button>
+      <button class="btn btn-agua" id="btnAgua">💧 AL AGUA</button>
     </div>
+    <button class="btn btn-outline" id="btnResetWheel" style="width:100%;">🔄 Reiniciar giro</button>
 
     <hr class="divider">
 
@@ -676,9 +721,9 @@
 
 <!-- Overlay ganador -->
 <div class="winner-overlay" id="winnerOverlay">
-  <div class="winner-card">
-    <div class="trophy">🏆</div>
-    <div class="label">GANADOR DE</div>
+  <div class="winner-card" id="winnerCard">
+    <div class="trophy" id="winnerTrophy">🏆</div>
+    <div class="label" id="winnerLabel">GANADOR DE</div>
     <div class="who" id="winnerName">—</div>
     <div class="for-prize" id="winnerPrize">iPhone 15 Pro</div>
     <div class="meta" id="winnerMeta">de 8 jugadores</div>
@@ -715,6 +760,7 @@
   const generateBtn         = $('btnGenerate');
   const resetBtn            = $('btnReset');
   const spinBtn             = $('btnSpin');
+  const aguaBtn             = $('btnAgua');
   const resetWheelBtn       = $('btnResetWheel');
   const spinAgainBtn        = $('btnSpinAgain');
   const closeWinnerBtn      = $('btnCloseWinner');
@@ -730,6 +776,9 @@
   const winnerMetaEl        = $('winnerMeta');
   const winnerBadge         = $('winnerBadge');
   const winnerBadgeName     = $('winnerBadgeName');
+  const winnerCard          = $('winnerCard');
+  const winnerTrophy        = $('winnerTrophy');
+  const winnerLabel         = $('winnerLabel');
 
   // ---------- Generar jugadores (solo números) ----------
   function generatePlayers() {
@@ -737,7 +786,7 @@
     const n = Math.min(Math.max(raw || 8, 2), 80);
     state.players = [];
     for (let i = 1; i <= n; i++) {
-      state.players.push({ id: i, label: `${i}` });
+      state.players.push({ id: i, label: `${i}`, out: false });
     }
     renderAll();
   }
@@ -763,7 +812,7 @@
       return;
     }
     playerListEl.innerHTML = state.players.map(p =>
-      `<div class="player-item" data-id="${p.id}">
+      `<div class="player-item${p.out ? ' is-out' : ''}" data-id="${p.id}">
         <span class="p-num">${p.id}</span>
         <span class="p-name">${p.label}</span>
         <button class="p-remove" data-id="${p.id}" title="Quitar jugador">×</button>
@@ -811,13 +860,20 @@
       const start = state.currentRotation + i * seg;
       const end = start + seg;
 
-      // Segmento de color alegre
+      // Segmento de color alegre (atenuado si esta "al agua")
+      const isOut = !!parts[i].out;
       ctx.beginPath();
       ctx.moveTo(cx, cy);
       ctx.arc(cx, cy, radius, start, end);
       ctx.closePath();
-      ctx.fillStyle = state.colors[i % state.colors.length];
+      ctx.fillStyle = isOut ? '#8fa3b0' : state.colors[i % state.colors.length];
       ctx.fill();
+
+      if (isOut) {
+        // Velo azulado para marcar el segmento como "al agua"
+        ctx.fillStyle = 'rgba(72,219,251,0.35)';
+        ctx.fill();
+      }
 
       // Borde sutil del segmento
       ctx.strokeStyle = 'rgba(255,255,255,0.25)';
@@ -840,7 +896,7 @@
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
 
-      const text = parts[i].label;
+      const text = isOut ? `${parts[i].label} 💧` : parts[i].label;
       const metrics = ctx.measureText(text);
       const pad = 5;
       const boxW = metrics.width + pad * 2;
@@ -910,21 +966,33 @@
   }
 
   // ---------- Giro ----------
-  function spin() {
+  // mode: 'winner' (gana el premio) o 'agua' (se va al agua, no gana nada)
+  function spin(mode) {
+    mode = (mode === 'agua') ? 'agua' : 'winner';
     if (state.isSpinning) return;
-    if (state.players.length < 2) {
-      alert('Necesitamos al menos 2 jugadores para girar.');
+
+    // Elegibles: los que no estan "al agua"
+    const eligible = state.players
+      .map((p, i) => ({ p, i }))
+      .filter(x => !x.p.out);
+
+    if (eligible.length === 0) {
+      alert('Todos los jugadores están al agua. Reiniciá el giro o generá de nuevo.');
       return;
     }
 
     state.isSpinning = true;
     spinBtn.disabled = true;
+    aguaBtn.disabled = true;
     spinBtn.textContent = '🎡 Girando...';
+    aguaBtn.textContent = '💧 Girando...';
     winnerBadge.style.display = 'none';
 
     const extraSpins = 8 + Math.random() * 4;
     const seg = (Math.PI * 2) / state.players.length;
-    const targetIdx = Math.floor(Math.random() * state.players.length);
+    // Elegir al azar entre los elegibles
+    const pick = eligible[Math.floor(Math.random() * eligible.length)];
+    const targetIdx = pick.i;
 
     // Que el puntero (arriba, ángulo -PI/2) caiga sobre el segmento targetIdx
     const targetRot = -Math.PI / 2 - targetIdx * seg;
@@ -951,37 +1019,61 @@
         requestAnimationFrame(frame);
       } else {
         state.currentRotation = normalized;
-        drawWheel();
         state.isSpinning = false;
         spinBtn.disabled = false;
+        aguaBtn.disabled = false;
         spinBtn.textContent = '🎡 GIRAR RULETA';
-        revealWinner(targetIdx);
+        aguaBtn.textContent = '💧 AL AGUA';
+
+        if (mode === 'agua') {
+          // Marcar al jugador como "al agua" (queda eliminado, no gana nada)
+          pick.p.out = true;
+        }
+        drawWheel();
+        renderPlayerList();
+        revealOutcome(targetIdx, mode);
       }
     }
     requestAnimationFrame(frame);
   }
 
-  function revealWinner(idx) {
+  function revealOutcome(idx, mode) {
     const player = state.players[idx];
     const prize = prizeNameInput.value || 'Premio';
-    winnerNameEl.textContent = player.label;
-    winnerPrizeEl.textContent = prize;
-    winnerMetaEl.textContent = `de ${state.players.length} jugadores`;
-    winnerOverlay.classList.add('active');
-    winnerBadge.style.display = 'inline-flex';
-    winnerBadgeName.textContent = player.label;
 
-    state.history.unshift({ name: player.label, prize, date: new Date().toLocaleString() });
+    if (mode === 'agua') {
+      winnerCard.classList.add('agua');
+      winnerTrophy.textContent = '💧';
+      winnerLabel.textContent = 'SE FUE AL AGUA';
+      winnerNameEl.textContent = player.label;
+      winnerPrizeEl.textContent = '¡No gana nada!';
+      winnerMetaEl.textContent = 'eliminado del juego';
+      winnerBadge.style.display = 'inline-flex';
+      winnerBadgeName.textContent = `${player.label} 💧`;
+      state.history.unshift({ name: player.label, prize: '💧 Al agua', date: new Date().toLocaleString() });
+    } else {
+      winnerCard.classList.remove('agua');
+      winnerTrophy.textContent = '🏆';
+      winnerLabel.textContent = 'GANADOR DE';
+      winnerNameEl.textContent = player.label;
+      winnerPrizeEl.textContent = prize;
+      winnerMetaEl.textContent = `de ${state.players.length} jugadores`;
+      winnerBadge.style.display = 'inline-flex';
+      winnerBadgeName.textContent = player.label;
+      state.history.unshift({ name: player.label, prize, date: new Date().toLocaleString() });
+    }
+
     if (state.history.length > 25) state.history = state.history.slice(0, 25);
     saveHistory();
     renderHistory();
+    winnerOverlay.classList.add('active');
   }
 
   closeWinnerBtn.addEventListener('click', () => winnerOverlay.classList.remove('active'));
   spinAgainBtn.addEventListener('click', () => {
     winnerOverlay.classList.remove('active');
     winnerBadge.style.display = 'none';
-    setTimeout(spin, 350);
+    setTimeout(() => spin('winner'), 350);
   });
 
   // ---------- Reset ----------
@@ -992,15 +1084,20 @@
     renderAll();
   });
 
+  // Reiniciar giro: vuelve a rotar desde cero y trae a todos del agua
   resetWheelBtn.addEventListener('click', () => {
     if (state.isSpinning) return;
     state.currentRotation = 0;
+    state.players.forEach(p => { p.out = false; });
+    winnerBadge.style.display = 'none';
     drawWheel();
+    renderPlayerList();
   });
 
   // ---------- Event listeners ----------
   generateBtn.addEventListener('click', generatePlayers);
-  spinBtn.addEventListener('click', spin);
+  spinBtn.addEventListener('click', () => spin('winner'));
+  aguaBtn.addEventListener('click', () => spin('agua'));
   $('btnClearHistory').addEventListener('click', clearHistory);
 
   prizeNameInput.addEventListener('input', () => {
