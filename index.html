@@ -562,8 +562,8 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: min(24vmin, 170px);
-    height: min(24vmin, 170px);
+    width: min(31vmin, 220px);
+    height: min(31vmin, 220px);
     border-radius: 50%;
     overflow: hidden;
     border: 5px solid #fff;
@@ -625,7 +625,7 @@
     </div>
 
     <div class="btn-row" style="margin-top:4px;">
-      <button class="btn btn-accent" id="btnSpin">🎡 GIRAR RULEJA</button>
+      <button class="btn btn-accent" id="btnSpin">🎡 GIRAR RULETA</button>
       <button class="btn btn-outline" id="btnResetWheel">Reiniciar giro</button>
     </div>
 
@@ -660,7 +660,7 @@
 
     <div class="stage-top">
       <div class="badge">🎉 Ruleta de Premios</div>
-      <h1>¡Girá por la celebración de Silvia!</h1>
+      <h1>¡Gira por la celebración de Silvia!</h1>
       <p class="subtitle">Cada número es un jugador. ¡Que gane el más afortunado!</p>
     </div>
 
@@ -922,7 +922,7 @@
     spinBtn.textContent = '🎡 Girando...';
     winnerBadge.style.display = 'none';
 
-    const extraSpins = 5 + Math.random() * 3;
+    const extraSpins = 8 + Math.random() * 4;
     const seg = (Math.PI * 2) / state.players.length;
     const targetIdx = Math.floor(Math.random() * state.players.length);
 
@@ -931,15 +931,18 @@
     const normalized = ((targetRot % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
     const total = normalized + extraSpins * Math.PI * 2;
     const startRot = state.currentRotation;
-    const duration = 4000 + Math.random() * 1500;
+    // Giro mas largo y dramatico: 7.5 a 10 segundos
+    const duration = 7500 + Math.random() * 2500;
     const t0 = performance.now();
 
     function frame(t) {
       const p = Math.min((t - t0) / duration, 1);
-      let eased = 1 - Math.pow(1 - p, 3);
-      if (p > 0.85) {
-        const tt = (p - 0.85) / 0.15;
-        eased = 1 - 0.04 * Math.sin(tt * Math.PI * 3.5) * (1 - tt);
+      // Easing ease-out quintico: arranca rapido y desacelera muy lento
+      let eased = 1 - Math.pow(1 - p, 5);
+      // Tension final: micro-oscilacion para dar suspenso en el ultimo tramo
+      if (p > 0.9) {
+        const tt = (p - 0.9) / 0.1;
+        eased = 1 - 0.035 * Math.sin(tt * Math.PI * 4) * (1 - tt);
       }
       const cur = startRot + total * eased;
       state.currentRotation = cur;
@@ -951,7 +954,7 @@
         drawWheel();
         state.isSpinning = false;
         spinBtn.disabled = false;
-        spinBtn.textContent = '🎡 GIRAR RULEJA';
+        spinBtn.textContent = '🎡 GIRAR RULETA';
         revealWinner(targetIdx);
       }
     }
