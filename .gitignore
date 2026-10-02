@@ -1,11 +1,22 @@
-# OS
-.DS_Store
-Thumbs.db
+# Images
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.bmp
+*.webp
 
-# Secrets
-.env
-*.env
+# OS
+Thumbs.db
+.DS_Store
+desktop.ini
 
 # Editor
 .vscode/
 .idea/
+*.swp
+*.swo
+
+# Build
+node_modules/
+dist/
